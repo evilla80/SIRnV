@@ -18,7 +18,6 @@ s_min = 0.01
 s_max = 0.7
 
 t_vax = 2 #durata della campagna attiva vaccinale
-pop_ita = 60e6
 
 
 #FUNZIONI
@@ -112,8 +111,8 @@ def run_simulation(beta, vax_rate_target, n_stages, t_grid, gamma, r, I0):
     vax_rate_rim = vax_rate_target - initial_immune
 
     R0 = [0.0] * n_stages
-    S0 = 1 - I0 - sum(R0)
     R0[0] = initial_immune
+    S0 = 1 - I0 - sum(R0)
     y0 = [S0, I0] + R0
 
     # Affinché l'integrale della vaccinazione nel tempo sia pari al tasso target
@@ -126,7 +125,7 @@ def run_simulation(beta, vax_rate_target, n_stages, t_grid, gamma, r, I0):
 #GRAFICI
 
 #Modello SIRnV in confronto ai dati reali
-def plot_sirnv_realdata(t, sol, real_data, year, vax_rate, filename, title_suffix=""):
+def plot_sirnv_realdata(t, sol, real_data, year, vax_rate):
     plt.figure(figsize=(10, 6))
     plt.plot(t, sol[:, 1], 'r-', linewidth=2, label='Modello SIRnS (Infetti)')
     # Scalatura dati reali sul picco della simulazione
@@ -138,13 +137,13 @@ def plot_sirnv_realdata(t, sol, real_data, year, vax_rate, filename, title_suffi
         real_scaled = real_data['INF_ALL'] * factor
         plt.scatter(real_data['Num'], real_scaled, color='blue', label='Dati Reali (Scalati)')
 
-    plt.title(f"Stagione {year}-{year + 1} (Vax: {vax_rate * 100:.1f}%) {title_suffix}")
+    plt.title(f"Stagione {year}-{year + 1} (Vax: {vax_rate * 100:.1f}%)")
     mesi_labels = ['Nov', 'Dic', 'Gen', 'Feb', 'Mar', 'Apr']
     plt.xticks(ticks=[0, 1, 2, 3, 4, 5], labels=mesi_labels)
     plt.ylabel("Proporzione Infetti")
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig(filename, dpi=300, bbox_inches="tight")
+    plt.savefig(f"img/sirnv_2017_2018.png", dpi=300, bbox_inches="tight")
 
 #Confronto di vari tassi di decadimento dell'immunità
 def plot_sensitivity_r(t, beta, gamma, vax_rate, n_stages, I0):
@@ -162,7 +161,7 @@ def plot_sensitivity_r(t, beta, gamma, vax_rate, n_stages, I0):
     plt.ylabel("Proporzione Infetti")
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig("sensitività.png", dpi=300, bbox_inches="tight")
+    plt.savefig("img/sensitività.png", dpi=300, bbox_inches="tight")
 
 #Contronto tra vari tassi di vaccinazione
 def plot_vaccine_scenarios(t, beta, gamma, r, n_stages, vax_real, I0):
@@ -180,7 +179,7 @@ def plot_vaccine_scenarios(t, beta, gamma, r, n_stages, vax_real, I0):
     plt.ylabel("Proporzione Infetti")
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig("vaccinazioni.png", dpi=300, bbox_inches="tight")
+    plt.savefig("img/vaccinazioni.png", dpi=300, bbox_inches="tight")
 
 #Variazione del valore Rt nel tempo
 def plot_rt(t, sol, beta, gamma, n_stages):
@@ -202,7 +201,7 @@ def plot_rt(t, sol, beta, gamma, n_stages):
     plt.ylabel("Valore Rip")
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig("analisi_rip.png", dpi=300, bbox_inches="tight")
+    plt.savefig("img/analisi_rip.png", dpi=300, bbox_inches="tight")
 
 #Grafico andamento di S, I e R nel tempo
 def plot_dynamics(t, sol, year):
@@ -212,6 +211,9 @@ def plot_dynamics(t, sol, year):
     R_total = np.sum(sol[:, 2:], axis=1)
 
     plt.figure(figsize=(10, 6))
+    plt.scatter(0, S[0], color='blue')
+    plt.scatter(0, R_total[0], color='green')
+    plt.scatter(0, I[0], color='red')
     plt.plot(t, S, color='blue', linewidth=2.5, label='Suscettibili (S)')
     plt.plot(t, R_total, color='green', linewidth=2.5, label='Immuni (R_tot)')
     plt.plot(t, I, color='red', linewidth=2.5, label='Infetti (I)')
@@ -222,7 +224,7 @@ def plot_dynamics(t, sol, year):
     plt.xticks(ticks=[0, 1, 2, 3, 4, 5], labels=mesi_labels)
     plt.grid(True, alpha=0.3)
     plt.legend(loc='center right', fontsize=11, framealpha=1, shadow=True)
-    plt.savefig("SIRnV_fasi.png", dpi=300, bbox_inches="tight")
+    plt.savefig("img/SIRnV_fasi.png", dpi=300, bbox_inches="tight")
 
 #Compara la curva del modello con i dati vaccinali del 2017 e quelli del 2021
 def plot_comparison_2021_rates(t, beta, gamma, r, n_stages, I0, season_data):
@@ -230,26 +232,26 @@ def plot_comparison_2021_rates(t, beta, gamma, r, n_stages, I0, season_data):
 
     other_year = 2021
     rate_other = get_vax_rate(df_vax, other_year)
-
+    print(rate_other)
     # Eseguiamo le due simulazioni
     sol_real = np.array(run_simulation(beta, rate_2017, n_stages, t, gamma, r, I0))
-    sol_hypo = np.array(run_simulation(beta, rate_other, n_stages, t, gamma, r, I0))
+    sol_other = np.array(run_simulation(beta, rate_other, n_stages, t, gamma, r, I0))
 
     peak_real = sol_real[:, 1].max()
-    peak_hypo = sol_hypo[:, 1].max()
-    reduction = (peak_real - peak_hypo) / peak_real * 100
+    peak_other = sol_other[:, 1].max()
+    reduction = (peak_real - peak_other) / peak_real * 100
     print(f"Riduzione del picco usando dati vaccinali 2021 {reduction}")
 
     plt.figure(figsize=(10, 6))
     plt.plot(t, sol_real[:, 1], 'r-', linewidth=2, label=f'Scenario 2017')
-    plt.plot(t, sol_hypo[:, 1], 'g--', linewidth=2, label=f'Scenario Post-COVID')
+    plt.plot(t, sol_other[:, 1], 'g--', linewidth=2, label=f'Scenario Post-COVID')
     plt.title(f"Impatto campagna vaccinale Post-COVID sul 2017")
     mesi_labels = ['Nov', 'Dic', 'Gen', 'Feb', 'Mar', 'Apr']
     plt.xticks(ticks=[0, 1, 2, 3, 4, 5], labels=mesi_labels)
     plt.ylabel("Proporzione Infetti")
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig("vaccini_postCovid.png", dpi=300, bbox_inches="tight")
+    plt.savefig("img/vaccini_postCovid.png", dpi=300, bbox_inches="tight")
 
 #Comparazione dell'andamento della curva degli infetti usando il modello SIR e il SIRnS
 #scalo i dati in modo da confrontare la forma dell'andamento
@@ -273,7 +275,7 @@ def plot_sir_comparison(t, sol_sir, sol_sirns, real_data):
     plt.title("Confronto tra SIR standard e SIRnS")
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig("SIR_vs_SIRnS.png", dpi=300, bbox_inches="tight")
+    plt.savefig("img/SIR_vs_SIRnS.png", dpi=300, bbox_inches="tight")
 
 #ESECUZIONE
 df_clean = clean_flu_data(df_flu)
@@ -289,7 +291,7 @@ print(season_17)
 # Simulazione del modello SIRnS
 print(f"Simulazione Stagione 2017 (Vax Rate: {vax_17:.3f})...")
 sol_17 = run_simulation(b, vax_17, n_stages, t, g, r, I0)
-plot_sirnv_realdata(t, sol_17, season_17, 2017, vax_17, "sirnv_2017_2018.png")
+plot_sirnv_realdata(t, sol_17, season_17, 2017, vax_17)
 plot_dynamics(t, sol_17, 2017)
 
 # Simulazione del modello SIR standard
